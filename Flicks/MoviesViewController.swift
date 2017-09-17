@@ -25,6 +25,7 @@ class MoviesViewController: UIViewController, UITableViewDelegate, UITableViewDa
     let refreshControl = UIRefreshControl()
     var searchActive: Bool = false
     var searchCollectionActive: Bool = false
+    var isReloadingCollectionView = false
     let baseImageURL = "https://image.tmdb.org/t/p/w500"
     
     override func viewDidLoad() {
@@ -131,7 +132,13 @@ class MoviesViewController: UIViewController, UITableViewDelegate, UITableViewDa
     func searchBarTextDidEndEditing(_ searchBar: UISearchBar) {
         if movieTableView.isHidden {
             print("collection end")
-//            searchCollectionActive = false
+            if isReloadingCollectionView {
+                print("reloading: \(isReloadingCollectionView) true")
+                searchCollectionActive = true
+            } else {
+                print("reloading: \(isReloadingCollectionView) false")
+                searchCollectionActive = false
+            }
         } else {
             print("end")
             searchActive = false
@@ -179,7 +186,10 @@ class MoviesViewController: UIViewController, UITableViewDelegate, UITableViewDa
             } else {
                 searchCollectionActive = true;
             }
+            
+            isReloadingCollectionView = true
             movieCollectionView.reloadData()
+            isReloadingCollectionView = false
         } else {
             print("text change")
             filteredMovies = tempFilteredMovies
