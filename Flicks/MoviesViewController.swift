@@ -243,11 +243,13 @@ class MoviesViewController: UIViewController, UITableViewDelegate, UITableViewDa
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "MovieCollectionCell", for: indexPath) as! MovieCollectionCell
         var movie = movies[indexPath.row]
         if searchCollectionActive {
+            //print("filtered")
             movie = filteredCollectionMovies[indexPath.row]
         }
         
         cell.titleLabel.text = movie.value(forKeyPath: "title") as? String
         cell.overviewLabel.text = movie.value(forKeyPath: "overview") as? String
+        print(cell.titleLabel.text ?? "")
         
         if let imageString = movie.value(forKeyPath: "poster_path") as? String {
             let imageUrlString = baseImageURL + imageString
@@ -277,11 +279,18 @@ class MoviesViewController: UIViewController, UITableViewDelegate, UITableViewDa
         
         if movieTableView.isHidden {
             let indexPath = movieCollectionView.indexPath(for: sender as! UICollectionViewCell)!
-            movieDetailViewController.movie = movies[indexPath.row]
+            if searchCollectionActive {
+                movieDetailViewController.movie = filteredCollectionMovies[indexPath.row]
+            } else {
+                movieDetailViewController.movie = movies[indexPath.row]
+            }
         } else {
             let indexPath = movieTableView.indexPath(for: sender as! UITableViewCell)!
-            movieDetailViewController.movie = movies[indexPath.row]
+            if searchActive {
+                movieDetailViewController.movie = filteredMovies[indexPath.row]
+            } else {
+                movieDetailViewController.movie = movies[indexPath.row]
+            }
         }
-        
     }
 }
