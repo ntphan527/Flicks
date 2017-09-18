@@ -218,6 +218,35 @@ class MoviesViewController: UIViewController, UITableViewDelegate, UITableViewDa
         // Dispose of any resources that can be recreated.
     }
     
+    func loadImage(imageUrl: String, posterImageView: UIImageView) {
+        let imageRequest = URLRequest(url: URL(string: imageUrl)!)
+        
+        posterImageView.setImageWith(
+            imageRequest,
+            placeholderImage: nil,
+            success: { (imageRequest, imageResponse, image) -> Void in
+                
+                // imageResponse will be nil if the image is cached
+                if imageResponse != nil {
+                    // smallImageResponse will be nil if the smallImage is already available
+                    // in cache (might want to do something smarter in that case).
+                    posterImageView.alpha = 0.0
+                    posterImageView.image = image
+                    
+                    UIView.animate(withDuration: 0.3, animations: {
+                        posterImageView.alpha = 1.0
+                    })
+                } else {
+                    posterImageView.image = image
+                }
+        },
+            failure: { (request, response, error) -> Void in
+                // do something for the failure condition
+                // possibly try to get the large image
+                self.networkErrorView.isHidden = false
+        })
+    }
+    
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = movieTableView.dequeueReusableCell(withIdentifier: "MovieCell", for: indexPath) as! MovieCell
         var movie = movies[indexPath.row]
@@ -233,12 +262,7 @@ class MoviesViewController: UIViewController, UITableViewDelegate, UITableViewDa
         
         if let imageString = movie.value(forKeyPath: "poster_path") as? String {
             let imageUrlString = baseImageURL + imageString
-            if let imageUrl = URL(string: imageUrlString) {
-                // URL(string: imageUrlString!) is NOT nil, go ahead and unwrap it and assign it to imageUrl and run the code in the curly braces
-                cell.posterImageView.setImageWith(imageUrl)
-            } else {
-                // URL(string: imageUrlString!) is nil. Good thing we didn't try to unwrap it!
-            }
+            loadImage(imageUrl: imageUrlString, posterImageView: cell.posterImageView)
         }
         return cell
     }
@@ -278,12 +302,7 @@ class MoviesViewController: UIViewController, UITableViewDelegate, UITableViewDa
         
         if let imageString = movie.value(forKeyPath: "poster_path") as? String {
             let imageUrlString = baseImageURL + imageString
-            if let imageUrl = URL(string: imageUrlString) {
-                // URL(string: imageUrlString!) is NOT nil, go ahead and unwrap it and assign it to imageUrl and run the code in the curly braces
-                cell.posterImageView.setImageWith(imageUrl)
-            } else {
-                // URL(string: imageUrlString!) is nil. Good thing we didn't try to unwrap it!
-            }
+            loadImage(imageUrl: imageUrlString, posterImageView: cell.posterImageView)
         }
         
         return cell
