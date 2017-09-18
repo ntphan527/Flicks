@@ -34,10 +34,13 @@ class MoviesViewController: UIViewController, UITableViewDelegate, UITableViewDa
         // Do any additional setup after loading the view.
         movieTableView.delegate = self
         movieTableView.dataSource = self
+        movieTableView.backgroundColor = UIColor(red:0.81, green:0.85, blue:0.73, alpha:1.0)
+        
         movieTableSearchBar.delegate = self
         
         movieCollectionView.delegate = self
         movieCollectionView.dataSource = self
+        movieCollectionView.backgroundColor = UIColor(red:0.81, green:0.85, blue:0.73, alpha:1.0)
         
         networkErrorView.isHidden = true
         
@@ -129,22 +132,6 @@ class MoviesViewController: UIViewController, UITableViewDelegate, UITableViewDa
         }
     }
     
-    func searchBarTextDidEndEditing(_ searchBar: UISearchBar) {
-        if movieTableView.isHidden {
-            print("collection end")
-            if isReloadingCollectionView {
-                print("reloading: \(isReloadingCollectionView) true")
-                searchCollectionActive = true
-            } else {
-                print("reloading: \(isReloadingCollectionView) false")
-                searchCollectionActive = false
-            }
-        } else {
-            print("end")
-            searchActive = false
-        }
-    }
-    
     func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
         if movieTableView.isHidden {
             print("collection cancel")
@@ -159,8 +146,28 @@ class MoviesViewController: UIViewController, UITableViewDelegate, UITableViewDa
         if movieTableView.isHidden {
             print("collection search")
             searchCollectionActive = false
+            //movieCollectionView.reloadData()
         } else {
             print("search")
+            searchActive = false
+        }
+    }
+    
+//    func searchBarShouldEndEditing(_ searchBar: UISearchBar) -> Bool {
+//        if isReloadingCollectionView {
+//            return false
+//        }
+//        return true
+//    }
+    
+    func searchBarTextDidEndEditing(_ searchBar: UISearchBar) {
+        if movieTableView.isHidden {
+            print("collection end")
+            if !isReloadingCollectionView {
+                searchCollectionActive = false
+            }
+        } else {
+            print("end")
             searchActive = false
         }
     }
@@ -188,8 +195,10 @@ class MoviesViewController: UIViewController, UITableViewDelegate, UITableViewDa
             }
             
             isReloadingCollectionView = true
+            print("before reload: \(searchCollectionActive)")
             movieCollectionView.reloadData()
             isReloadingCollectionView = false
+            print("after reload: \(searchCollectionActive)")
         } else {
             print("text change")
             filteredMovies = tempFilteredMovies
@@ -198,7 +207,9 @@ class MoviesViewController: UIViewController, UITableViewDelegate, UITableViewDa
             } else {
                 searchActive = true;
             }
+            print("before reload: \(searchActive)")
             movieTableView.reloadData()
+            print("after reload: \(searchActive)")
         }
     }
     
@@ -210,13 +221,15 @@ class MoviesViewController: UIViewController, UITableViewDelegate, UITableViewDa
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = movieTableView.dequeueReusableCell(withIdentifier: "MovieCell", for: indexPath) as! MovieCell
         var movie = movies[indexPath.row]
-        if searchActive {
+        print("searchActive: \(searchActive) index: \(indexPath.row)")
+        if searchActive && indexPath.row < filteredMovies.count {
             movie = filteredMovies[indexPath.row]
         }
         
         cell.titleLabel.text = movie.value(forKeyPath: "title") as? String
         cell.overviewLabel.text = movie.value(forKeyPath: "overview") as? String
         cell.overviewLabel.sizeToFit()
+        cell.backgroundColor = UIColor(red:0.81, green:0.85, blue:0.73, alpha:1.0)
         
         if let imageString = movie.value(forKeyPath: "poster_path") as? String {
             let imageUrlString = baseImageURL + imageString
@@ -252,14 +265,16 @@ class MoviesViewController: UIViewController, UITableViewDelegate, UITableViewDa
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "MovieCollectionCell", for: indexPath) as! MovieCollectionCell
         var movie = movies[indexPath.row]
-        if searchCollectionActive {
+        print("searchCollectionActive: \(searchCollectionActive)")
+        
+        if searchCollectionActive && indexPath.row < filteredCollectionMovies.count {
             //print("filtered")
             movie = filteredCollectionMovies[indexPath.row]
         }
         
         cell.titleLabel.text = movie.value(forKeyPath: "title") as? String
         cell.overviewLabel.text = movie.value(forKeyPath: "overview") as? String
-        print(cell.titleLabel.text ?? "")
+        
         
         if let imageString = movie.value(forKeyPath: "poster_path") as? String {
             let imageUrlString = baseImageURL + imageString
@@ -284,19 +299,23 @@ class MoviesViewController: UIViewController, UITableViewDelegate, UITableViewDa
         return UICollectionReusableView()
     }
     
+    @IBAction func onTap(_ sender: Any) {
+        view.endEditing(true)
+    }
+    
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         let movieDetailViewController = segue.destination as! MovieDetailViewController
         
         if movieTableView.isHidden {
             let indexPath = movieCollectionView.indexPath(for: sender as! UICollectionViewCell)!
-            if searchCollectionActive {
+            if searchCollectionActive && indexPath.row < filteredCollectionMovies.count {
                 movieDetailViewController.movie = filteredCollectionMovies[indexPath.row]
             } else {
                 movieDetailViewController.movie = movies[indexPath.row]
             }
         } else {
             let indexPath = movieTableView.indexPath(for: sender as! UITableViewCell)!
-            if searchActive {
+            if searchActive && indexPath.row < filteredMovies.count {
                 movieDetailViewController.movie = filteredMovies[indexPath.row]
             } else {
                 movieDetailViewController.movie = movies[indexPath.row]

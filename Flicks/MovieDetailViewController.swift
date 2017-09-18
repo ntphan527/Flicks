@@ -18,7 +18,8 @@ class MovieDetailViewController: UIViewController {
     @IBOutlet weak var networkErrorView: UIView!
     
     var movie: NSDictionary!
-    let baseImageURL = "https://image.tmdb.org/t/p/w500"
+    let smallBaseImageURL = "https://image.tmdb.org/t/p/w92"
+    let largeBaseImageURL = "https://image.tmdb.org/t/p/original"
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -29,17 +30,75 @@ class MovieDetailViewController: UIViewController {
         titleLabel.text = movie.value(forKeyPath: "title") as? String
         overviewLabel.text = movie.value(forKeyPath: "overview") as? String
         overviewLabel.sizeToFit()
+        networkErrorView.isHidden = true
+        view.backgroundColor = UIColor(red:0.81, green:0.85, blue:0.73, alpha:1.0)
         
         if let imageString = movie.value(forKeyPath: "poster_path") as? String {
-            let imageUrlString = baseImageURL + imageString
-            if let imageUrl = URL(string: imageUrlString) {
-                // URL(string: imageUrlString!) is NOT nil, go ahead and unwrap it and assign it to imageUrl and run the code in the curly braces
-                posterImageView.setImageWith(imageUrl)
-            } else {
-                // URL(string: imageUrlString!) is nil. Good thing we didn't try to unwrap it!
-            }
+            let smallImageUrlString = smallBaseImageURL + imageString
+            let largeImageUrlString = largeBaseImageURL + imageString
+            loadImage(smallImageUrl: smallImageUrlString, largeImageUrl: largeImageUrlString)
         }
 
+    }
+    
+    func loadImage(smallImageUrl: String, largeImageUrl: String) {
+        let smallImageRequest = URLRequest(url: URL(string: smallImageUrl)!)
+        let largeImageRequest = URLRequest(url: URL(string: largeImageUrl)!)
+        
+        self.posterImageView.setImageWith(
+            smallImageRequest,
+            placeholderImage: nil,
+            success: { (smallImageRequest, smallImageResponse, smallImage) -> Void in
+                
+                // imageResponse will be nil if the image is cached
+                if smallImageResponse != nil {
+                    // smallImageResponse will be nil if the smallImage is already available
+                    // in cache (might want to do something smarter in that case).
+                    self.posterImageView.alpha = 0.0
+                    self.posterImageView.image = smallImage
+                    
+                    UIView.animate(withDuration: 0.3, animations: { () -> Void in
+                        
+                        self.posterImageView.alpha = 1.0
+                        
+                    }, completion: { (sucess) -> Void in
+                        
+                        // The AFNetworking ImageView Category only allows one request to be sent at a time
+                        // per ImageView. This code must be in the completion block.
+                        self.posterImageView.setImageWith(
+                            largeImageRequest,
+                            placeholderImage: smallImage,
+                            success: { (largeImageRequest, largeImageResponse, largeImage) -> Void in
+                                
+                                self.posterImageView.image = largeImage
+                                
+                        },
+                            failure: { (request, response, error) -> Void in
+                                // do something for the failure condition of the large image request
+                                // possibly setting the ImageView's image to a default image
+                        })
+                    })
+                } else {
+                    self.posterImageView.setImageWith(
+                        largeImageRequest,
+                        placeholderImage: smallImage,
+                        success: { (largeImageRequest, largeImageResponse, largeImage) -> Void in
+                            
+                            self.posterImageView.image = largeImage
+                            
+                    },
+                        failure: { (request, response, error) -> Void in
+                            // do something for the failure condition of the large image request
+                            // possibly setting the ImageView's image to a default image
+                            self.networkErrorView.isHidden = false
+                    })
+                }
+            },
+            failure: { (request, response, error) -> Void in
+                // do something for the failure condition
+                // possibly try to get the large image
+                self.networkErrorView.isHidden = false
+        })
     }
 
     override func didReceiveMemoryWarning() {
